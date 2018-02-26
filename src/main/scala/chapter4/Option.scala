@@ -30,3 +30,38 @@ trait Option[+A] {
 }
 case class Some[+A](get: A) extends Option[A]
 case object None extends Option[Nothing]
+
+object Option {
+
+  def map2[A, B, C](a: Option[A], b: Option[B])(f: (A, B) => C): Option[C] = {
+    (a, b) match {
+      case (Some(a), Some(b)) => Some(f(a, b))
+      case (_, _) => None
+    }
+  }
+
+  def mean(xs: Seq[Double]): Option[Double] = {
+    if (xs.isEmpty) None
+    else Some(xs.sum / xs.length)
+  }
+  // 4.2
+  def variance(xs: Seq[Double]): Option[Double] = {
+    mean(xs).flatMap(m => mean(xs.map(x => math.pow(x - m, 2))))
+  }
+
+  //4.4
+  def sequence[A](a: List[Option[A]]): Option[List[A]] = {
+    a.foldRight[Option[List[A]]](Some(Nil))((x, y) => map2(x, y)(_ :: _))
+  }
+
+  def sequence1[A](a: List[Option[A]]): Option[List[A]] = a match {
+    case Nil => Some(Nil)
+    case None :: _ => None
+    case Some(head) :: tail => sequence1(tail).map(head :: _)
+  }
+
+  //4.5
+  def traverse[A, B](a: List[A])(f: A => Option[B]): Option[List[B]] = {
+    sequence(a.map(f))
+  }
+}
