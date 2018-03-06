@@ -61,8 +61,7 @@ object chapter6 {
 
   type Rand[+A] = RNG => (A, RNG)
 
-  def unit[A](a: A): Rand[A] =
-    rng => (a, rng)
+  def unit[A](a: A): Rand[A] = rng => (a, rng)
 
   def map[A, B](s: Rand[A])(f: A => B): Rand[B] = rng => {
       val (a, r) = s(rng)
@@ -81,14 +80,25 @@ object chapter6 {
 
   def both[A, B](ra: Rand[A], rb: Rand[B]): Rand[(A, B)] = map2(ra, rb)((a, b) => (a, b))
 
-  //6.7
-  def sequence[A](fs: List[Rand[A]]): Rand[List[A]] = ???
+  //6.7 hard
+  def sequence[A](fs: List[Rand[A]]): Rand[List[A]] = {
+    fs.foldRight[Rand[List[A]]](unit(List[A]()))((a: Rand[A], result: Rand[List[A]]) => map2(a, result)((a: A, b: List[A]) => (a :: b)))
+  }
 
-  def ints1(count: Int): Rand[List[Int]] = ???
+  def ints1(count: Int): Rand[List[Int]] = sequence(List.fill(count)(_.nextInt))
 
   //6.8
-
+  def flatMap[A, B](f: Rand[A])(g: A => Rand[B]): Rand[B] = rng => {
+    val (a, r) = f(rng)
+    g(a)(r)
+  }
 
   //6.9
+  def mapWithFlatMap[A, B](s: Rand[A])(f: A => B): Rand[B] = flatMap(s)(a => (rng => (f(a), rng))) // a => unit(f(a))
 
-}
+  //flatMap[A, C](Rand[A])(A => Rand[C]): Rand[C]
+  //map[B, C](Rand[B])(B => C): Rand[C]
+  def map2WithFlatMap[A, B, C](ra: Rand[A], rb: Rand[B])(f: (A, B) => C): Rand[C] = flatMap(ra)(a => map(rb)(b => f(a, b)))
+
+
+  }
