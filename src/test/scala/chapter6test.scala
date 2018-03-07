@@ -61,7 +61,7 @@ class chapter6test extends FunSuite {
   import Machine._
   test("simulate candy machine") {
     val machine = Machine(true, 5, 10)
-    val inputs = List(Coin, Turn)
-    assert(simulateMachine(inputs).run(machine) == ((6, 9), Machine(true, 6, 9)))
+    val inputs = List(Coin)
+    assert(simulateMachine(inputs).run(machine) == ((6, 10), Machine(false, 6, 10)))
   }
 }

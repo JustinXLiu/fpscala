@@ -12,26 +12,14 @@ object Machine {
     def helper(remainInputs: List[Input], s: State[Machine, (Int, Int)]): State[Machine, (Int, Int)] = remainInputs match {
       case Nil => s
       case h :: t => {
-        h match {
-          case Coin => {
-            val transform: Machine => Machine = m => m match {
-              case Machine(a, 0, b) => Machine(a, 0, b)
-              case Machine(false, x, y) => Machine(false, x, y)
-              case Machine(true, x, y) if y > 0 => Machine(true, x + 1, y)
-            }
-            s.modify(transform)
-            helper(t, s)
-          }
-          case Turn => {
-            val transform: Machine => Machine = m => m match {
-              case Machine(a, 0, b) => Machine(a, 0, b)
-              case Machine(true, x, y) => Machine(true, x, y)
-              case Machine(false, x, y) if y > 0 => Machine(true, x, y - 1)
-            }
-            s.modify(transform)
-            helper(t, s)
-          }
-        }
+        s.modify((m: Machine) => (h, m) match {
+          case (_, Machine(_, 0, _)) => m
+          case (Coin, Machine(false, _, _)) => m
+          case (Coin, Machine(true, x, y)) => Machine(false, x + 1, y)
+          case (Turn, Machine(true, _, _)) => m
+          case (Turn, Machine(false, x, y)) => Machine(true, x, y - 1)
+        })
+        helper(t, s)
       }
     }
     helper(inputs, State(m => ((m.coins, m.candies), m)))
