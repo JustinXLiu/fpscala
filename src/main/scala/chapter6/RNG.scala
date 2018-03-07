@@ -25,7 +25,7 @@ object chapter6 {
   //6.2
   def double(rng: RNG): (Double, RNG) = {
     val (n, rng_) = nonNegativeInt(rng)
-    ((n / (1 + Int.MaxValue)).toDouble, rng_)
+    (((n - 1).toDouble / Int.MaxValue), rng_)
   }
 
   //6.3
@@ -50,14 +50,17 @@ object chapter6 {
   //6.4
   def ints(count: Int)(rng: RNG) : (List[Int], RNG) ={
     def helper(c: Int, r: RNG, acc: List[Int]): (List[Int], RNG) = {
-      if (c == count) (acc, r)
+      if (c >= count) (acc, r)
       else {
         val (i, r_) = r.nextInt
         helper(c + 1, r_, i :: acc)
       }
     }
-    helper(0, rng, List())
+    val (l, r2) = helper(0, rng, List())
+    (l.reverse, r2)
   }
+
+  //=======================================================================//
 
   type Rand[+A] = RNG => (A, RNG)
 
@@ -69,7 +72,7 @@ object chapter6 {
   }
 
   //6.5
-  def double1: Rand[Double] = map(nonNegativeInt)(i => (i / (1 + Int.MaxValue)).toDouble)
+  def double1: Rand[Double] = map(nonNegativeInt)(i => ((i - 1).toDouble / Int.MaxValue))
 
   //6.6
   def map2[A, B, C](ra: Rand[A], rb: Rand[B])(f: (A, B) => C): Rand[C] = r => {
@@ -79,13 +82,17 @@ object chapter6 {
   }
 
   def both[A, B](ra: Rand[A], rb: Rand[B]): Rand[(A, B)] = map2(ra, rb)((a, b) => (a, b))
+  //def both[A, B](ra: Rand[A], rb: Rand[B]): Rand[(A, B)] = map2(ra, rb)((_, _))
 
   //6.7 hard
   def sequence[A](fs: List[Rand[A]]): Rand[List[A]] = {
-    fs.foldRight[Rand[List[A]]](unit(List[A]()))((a: Rand[A], result: Rand[List[A]]) => map2(a, result)((a: A, b: List[A]) => (a :: b)))
+    fs.foldRight[Rand[List[A]]](unit(List[A]()))((a: Rand[A], result: Rand[List[A]]) =>
+      map2(a, result)((a: A, b: List[A]) => (a :: b)))
   }
 
   def ints1(count: Int): Rand[List[Int]] = sequence(List.fill(count)(_.nextInt))
+
+  //======================================================================================//
 
   //6.8
   def flatMap[A, B](f: Rand[A])(g: A => Rand[B]): Rand[B] = rng => {
@@ -98,7 +105,10 @@ object chapter6 {
 
   //flatMap[A, C](Rand[A])(A => Rand[C]): Rand[C]
   //map[B, C](Rand[B])(B => C): Rand[C]
-  def map2WithFlatMap[A, B, C](ra: Rand[A], rb: Rand[B])(f: (A, B) => C): Rand[C] = flatMap(ra)(a => map(rb)(b => f(a, b)))
+  //hard
+  def map2WithFlatMap[A, B, C](ra: Rand[A], rb: Rand[B])(f: (A, B) => C): Rand[C] =
+    //flatMap(ra)(a => rng => (f(a, rb(rng)._1), rng)) // hehe
+    flatMap(ra)(a => rng => (f(a, rb(rng)._1), rb(rng)._2)) // Rand[C] = RNG => (C, RNG)
+    //flatMap(ra)(a => map(rb)(b => f(a, b)))
 
-
-  }
+}
