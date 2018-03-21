@@ -1,5 +1,6 @@
 package chapter7
 
+import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.TimeUnit
 
 abstract class ExecutorService {
@@ -32,8 +33,21 @@ object Par {
     UnitFuture(f(af.get, bf.get))
   }
 
+  private case class Map2FutureWithTimeout[A, B, C](a: Future[A], b: Future[B], f: (A, B) => C) extends Future[C] {
+    override def get: C = f(a.get, b.get)
+    override def get(timeout: Long, unit: TimeUnit): C = ???
+    override def cancel(evenIfRunning: Boolean): Boolean = a.cancel(evenIfRunning) || b.cancel(evenIfRunning)
+    override def isDone: Boolean = a.isDone && b.isDone
+    override def isCancelled: Boolean = a.isCancelled || b.isCancelled
+  }
+
   //7.3
-  def map2Future[A, B, C](a: Par[A], b: Par[B])(f: (A, B) => C): Par[C] = ???
+  def map2Future[A, B, C](a: Par[A], b: Par[B])(f: (A, B) => C): Par[C] = (es: ExecutorService) => {
+    val af = a(es)
+    val bf = b(es)
+    Map2FutureWithTimeout(af, bf, f)
+  }
+
   //7.4
   def asyncF[A, B](f: A => B): A => Par[B] = a => lazyUnit(f(a))
 
@@ -42,4 +56,22 @@ object Par {
   })
 
   def lazyUnit[A](a: => A): Par[A] = fork(unit(a))
+
+  def map[A, B](pa: Par[A])(f: A => B): Par[B] = map2(pa, unit())((a, _) => f(a))
+
+  def parMap[A, B](ps: List[A])(f: A => B): Par[List[B]] = fork {
+    val fbs = ps.map(asyncF(f))
+    sequence(fbs)
+  }
+
+  //7.5
+  def sequence[A](ps: List[Par[A]]): Par[List[A]] = {
+    ps.foldRight[Par[List[A]]](unit(List()))((h, t) => map2(h, t)(_ :: _))
+  }
+
+  //7.6
+  def parFilter[A](as: List[A])(f: A => Boolean): Par[List[A]] = {
+    val l = as.map(asyncF((a: A) => if (f(a)) List(a) else Nil))
+    map(sequence(l))(_.flatten)
+  }
 }
