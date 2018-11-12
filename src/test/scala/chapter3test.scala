@@ -60,14 +60,23 @@ class chapter3test extends FunSuite {
     assert(List.concat(List(l, l)) == List(1, 2, 3, 4, 5, 1, 2, 3, 4, 5))
   }
 
+  test("addOne") {
+    assert(List.addOne(l) == List(2, 3, 4, 5, 6))
+  }
 
+  test("toListString") {
+    val d = List(1.0, 2.0, 3.0)
+    assert(List.toListString(Nil) == Nil)
+    assert(List.toListString(d) == List("1.0", "2.0", "3.0"))
+  }
 
+  test("map") {
+    assert(List.map(l)(lessThan3) == List(true, true, false, false, false))
+  }
 
-
-
-
-
-
+  test("filter") {
+    assert(List.filter(l)(lessThan3) == List(1, 2))
+  }
 
   test("flatMap") {
     assert(List.flatMap(l)(i => List(i, i)) == List(1, 1, 2, 2, 3, 3, 4, 4, 5, 5))
@@ -75,6 +84,15 @@ class chapter3test extends FunSuite {
 
   test("filter with flatMap") {
     assert(List.filterWithFlatMap(l)(lessThan3) == List(1, 2))
+  }
+
+  test("add Pair") {
+    assert(List.addPair(l, l) == List(2, 4, 6, 8, 10))
+  }
+
+  test("zip with") {
+    val d = List(1.0, 2.0, 3.0, 4.0, 5.0)
+    assert(List.zipWith(l, d)(_ * _) == List(1.0, 4.0, 9.0, 16.0, 25.0))
   }
 
 }
